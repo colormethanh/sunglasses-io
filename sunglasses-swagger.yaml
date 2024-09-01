@@ -1,0 +1,319 @@
+swagger: "2.0"
+info:
+  title: Sunglasses API
+  description: API that simulates a sunglasses ecommerce site
+  version: 1.0.0
+host: 127.0.0.1:3000
+basePath: /api
+schemes:
+  - https
+paths:
+  /brands:
+    get:
+      summary: Returns a lost of all brands
+      produces: 
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Brand'
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error' 
+  /brands/{id}/products:
+    get: 
+      summary: Returns a list of all sunglasses from a given brand.
+      produces: 
+        - application/json
+      parameters:
+        - name: id
+          in: path
+          description: Id of brand to be searched
+          required: true
+          type: string
+      responses: 
+        200: 
+          description: OK
+          schema:
+            type: array
+            items: 
+              $ref: '#definitions/Product'
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error' 
+  /products:
+    get:
+      summary: Returns a list of all products
+      produces:
+        - application/json
+      responses:
+        200: 
+          description: OK
+          schema:
+            type: array
+            items: 
+              $ref: '#/definitions/Product'
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+  /login:
+    post:
+      summary: Log user into site
+      produces:
+        - application/json
+      parameters:
+        - name: username
+          in: body
+          schema:
+            type: string
+          description: username of user
+          required: true
+        - name: password
+          in: body
+          schema:
+            type: string
+          description: password of user
+          required: true
+      responses:
+      200: 
+        description: OK
+        schema:
+          type: string
+          description: access token
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+  /me/cart:
+    get:
+      summary: Retrieve cart
+      parameters:
+        - name: accessToken
+          description: access token of user
+          in: header
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/Cart'
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+    post: 
+      summary: Add item to cart
+      produces: 
+        - application/json
+      parameters:
+        - name: product
+          description: product to add to cart 
+          in: body
+          schema:
+            $ref: '#/definitions/Product'
+        - name: accessToken
+          description: access token of user
+          in: header
+          type: string
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+  /me/cart/{productId}:
+    delete:
+      summary: Delete an item from cart
+      produces:
+        - application/json
+      parameters:
+        - name: productId
+          description: id of product to delete
+          in: path
+          type: string
+          required: true
+        - name: accessToken
+          description: access token of user
+          in: header
+          type: string
+          required: true
+      responses:
+        200:
+          description: OK
+        default:
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Update the quantity of an item in cart
+      produces: 
+        - application/json
+      parameters:
+        - name: productId
+          description: id of product to be updated
+          in: path
+          type: string
+          required: true
+        - name: quantity
+          description: quantity to be updated to
+          in: body
+          schema:
+            type: string
+          required: true
+        - name: accessToken
+          description: access token of user
+          in: header
+          type: string
+          required: true
+      responses: 
+        200:
+          description: OK
+        default: 
+          description: Unexpected Error
+          schema:
+            $ref: '#/definitions/Error'
+
+definitions:
+  Product:
+    type: object
+    properties:
+      id: 
+        type: string
+        description: unique identifier for a goal
+      categoruId:
+        type: string 
+        description: id to corresponding brand 
+      name: 
+        type: string
+        description: name for Sunglasses
+      description:
+        type: string
+        description: Description for Product
+      price: 
+        type: integer
+        format: int32
+      imageUrls:
+        type: array
+        items: 
+          type: string
+          description: url to product image
+  Brand: 
+    type: object
+    properties: 
+      id: 
+        type: string
+        description: unique identifier for a brand
+      name: 
+        type: string
+        description: name of the brand
+  Cart:
+    type: array
+    items:
+      type: object
+      properties:
+        product:
+          $ref: '#/definitions/Product'
+        quantity: 
+          type: integer
+  User:
+    type: object
+    properties: 
+      gender: 
+        type: string
+        description: gender of the User
+      cart: 
+        type: array
+        items:
+          $ref: '#/definitions/Product'
+      name: 
+        type: object
+        description: information about user's name
+        properties:
+          title: 
+            type: string
+            description: title of User
+          first: 
+            type: string
+            description: user's first name
+          last: 
+            type: string
+            description: user's last name
+      location: 
+        type: object
+        description: information about user's location
+        properties:
+          street: 
+            type: string
+          city: 
+            type: string
+          state: 
+            type: string
+          postcode: 
+            type: integer
+      email:
+        type: string
+        description: user's email
+      login: 
+        type: object
+        description: user's login information
+        properties:
+          username:
+            type: string
+          password: 
+            type: string
+          salt: 
+            type: string
+          md5:
+            type: string
+          sha1:
+            type: string
+          sha256:
+            type: string
+      dob:
+        type: string
+        description: user's date of birth
+      registered:
+        type: string 
+        description: time date user registered
+      phone: 
+        type: string
+        description: user's phone number
+      cell: 
+        type: string
+        description: user's cellphone number
+      picture: 
+        type: object
+        description: picture of user
+        properties: 
+          large: 
+            type: string
+          medium: 
+            type: string
+          small:
+            type: string
+      nat: 
+        type: string
+        description: nat of user
+  Error:
+    type: object
+    properties: 
+      code: 
+        type: integer
+        format: int32
+      message: 
+        type: string
+      fields:
+        type: string
+
+  
