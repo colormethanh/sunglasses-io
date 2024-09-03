@@ -3,8 +3,10 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
-const swaggerDocument = YAML.load('./swagger.yaml'); // Replace './swagger.yaml' with the path to your Swagger file
+const swaggerDocument = YAML.load('./sunglasses-swagger.yaml'); // Replace './swagger.yaml' with the path to your Swagger file
 const app = express();
+
+const BASE_URL = "/api"
 
 app.use(bodyParser.json());
 
@@ -27,5 +29,11 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
+
+app.get(BASE_URL + "/brands", (req, resp) => {
+
+  if (!brands) 
+  resp.send(brands);
+})
 
 module.exports = app;
