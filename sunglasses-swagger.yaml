@@ -191,7 +191,7 @@ definitions:
       id:
         type: string
         description: unique identifier for a goal
-      categoruId:
+      categoryId:
         type: string
         description: id to corresponding brand
       name:

@@ -3,7 +3,9 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
-const swaggerDocument = YAML.load('./sunglasses-swagger.yaml'); // Replace './swagger.yaml' with the path to your Swagger file
+const swaggerDocument = YAML.load('./sunglasses-swagger.yaml');
+const {errorMessages} = require('../utility/errors');
+const {AccessToken, randId} = require('../utility/helper');
 const app = express();
 
 const BASE_URL = "/api"
@@ -15,11 +17,7 @@ const users = require('../initial-data/users.json');
 const brands = require('../initial-data/brands.json');
 const products = require('../initial-data/products.json');
 
-// Error handling
-app.use((err, req, res, next) => {
-	console.error(err.stack);
-	res.status(500).send('Something broke!');
-});
+const ACCESS_TOKENS = [];
 
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -30,10 +28,64 @@ app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
 
-app.get(BASE_URL + "/brands", (req, resp) => {
+// Gets a list of brands
+app.get(BASE_URL + "/brands", (req, res) => {
+  try {
+    if (!brands) return res.status(500).send(errorMessages[500]);
+    res.send(brands);
+  } catch(err){
+    next(err);
+  };
+});
 
-  if (!brands) 
-  resp.send(brands);
+// Get a list of products with brand of provided id
+app.get(BASE_URL + "/brands/:id/products", (req, res) => {
+  try {
+    const { id } = req.params;
+    const brandIds = brands.map((brand) => brand.id);
+    if (!id) return res.status(400).send(errorMessages[400]);
+    if (!brandIds.includes(id)) return res.status(404).send(errorMessages[404]);
+    const filteredProduct = products.filter((product) => product.categoryId === id);
+    res.send(filteredProduct);
+  } catch(err) {
+    next(err);
+  };
+});
+
+app.get(BASE_URL + "/products", (req, res) => {
+  try{
+    if(!products) return res.status(500).send(errorMessages[500]);
+    res.send(products);
+  } catch(err) {
+    next(err);
+  };
+});
+
+app.post(BASE_URL + "/login", (req,res) => {
+  try {
+    const {username, password} = req.body;
+    if (!username || !password) res.status(401).send(errorMessages[401]);
+
+    const user = users.find((user) => user.login.username === username && user.login.password === password);
+    
+    // todo: check if user already has access token
+    const userAccessToken = AccessToken(username);
+    
+    res.send(userAccessToken);
+
+  } catch (err) {
+    next(err);
+  }
 })
+
+
+
+
+
+// Error handling
+app.use((err, req, res, next) => {
+	console.error(err.stack);
+	res.status(500).send(errorMessages[500]);
+});
 
 module.exports = app;
