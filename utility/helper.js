@@ -7,20 +7,8 @@ const testProduct = {
   imageUrls: ["https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg"]
 };
 
-const testProduct2 = {
-  categoryId: "2",
-  name: "testGlasses2",
-  description: "Awesome glasses for testing a second time",
-  price: 999,
-  imageUrls: ["https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg"]
-}
-
-const validateProduct = (product) => {
-  if (!product.name) return false;
-  if (!product.description) return false;
-  if (!product.price) return false;
-  if (!product.imageUrls) return false;
-  return true;
+const validateProduct = (product, products) => {
+  return products.find((productInList) => productInList.id === product.id)
 }
 
 const randId = () => JSON.stringify(Date.now() * Math.random() * 100);
@@ -39,4 +27,4 @@ const AccessToken = (username) => {
   }
 };
 
-module.exports = {AccessToken, updateTimestamp, isStillValid, validateProduct, randId, testProduct, testProduct2}
+module.exports = {AccessToken, updateTimestamp, isStillValid, validateProduct, randId, testProduct}

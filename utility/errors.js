@@ -1,5 +1,6 @@
 
 const errorMessages = {
+  200 : "okay",
   401 : "Invalid or missing login credentials",
   403 : "Access denied",
   404 : "The resource your are searching for could not be found",

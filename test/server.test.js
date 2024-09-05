@@ -3,12 +3,10 @@ const chaiHttp = require('chai-http');
 const server = require('../app/server'); // Adjust the path as needed
 const { serve } = require('swagger-ui-express');
 const { sendChaiGet, sendChaiGetWithHeader, sendChaiPost, sendChaiPostWithHeader, sendChaiDelete } = require("../utility/chaiHelpers");
-const { randId, testProduct, testProduct2 } = require("../utility/helper");
+const { randId, testProduct} = require("../utility/helper");
 
 const should = chai.should();
 chai.use(chaiHttp);
-
-// TODO: Write tests for the server
 
 describe('Brands', () => {
   describe("/GET brands/", () => {
@@ -135,10 +133,8 @@ describe('cart', () => {
     "password" : "jonjon"
   };
 
-  let idToDelete;
-
   describe("GET /me/cart", () => {
-    it("It should return cart after logging in", (done) => {
+    it("It should return cart", (done) => {
       sendChaiPost(server, "/api/login", userCredentials, done, 
         (err, res, done) => {
           const accessToken = res.body;
@@ -190,25 +186,44 @@ describe('cart', () => {
         (err, res, done) => {
           const accessToken = res.body;
           const header = { token : accessToken.token };
-          const product = testProduct;
+
+          sendChaiGet(server, "/api/products", done, 
+            (err, res, done) => {
+              const products = res.body;
+              const product = products[0];
+
+              sendChaiPostWithHeader(server, "/api/me/cart", product, header, done, (err, res, done) => {
+
+                sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+                  (err, res) => {
+
+                    res.should.have.status(200);
+                    res.body.should.be.an("array");
+                    // Checking cart item
+                    res.body[0].should.have.property("id");
+        
+                    // Checking if cart item has quantity value
+                    res.body[0].should.have.property("quantity");
+                    res.body[0].quantity.should.equal(1);
+        
+                    // Checking product inside of cart item
+                    res.body[0].product.should.have.property("id");
+                    res.body[0].product.should.have.property("name");
+                    res.body[0].product.name.should.equal(product.name);
+                    res.body[0].product.should.have.property("description");
+                    res.body[0].product.description.should.equal(product.description);
+                    res.body[0].product.should.have.property("price");
+                    res.body[0].product.price.should.equal(product.price);
+                    res.body[0].product.imageUrls.should.be.an("array");
+                    done();
+                  });
+              });
+          }); 
           
-          sendChaiPostWithHeader(server, "/api/me/cart", product, header, done, (err, res, done) => {
-            res.should.have.status(200);
-            res.body.should.be.an("array");
-            res.body[0].should.have.property("id");
-            res.body[0].should.have.property("name");
-            res.body[0].name.should.equal(product.name);
-            res.body[0].should.have.property("description");
-            res.body[0].description.should.equal(product.description);
-            res.body[0].should.have.property("price");
-            res.body[0].price.should.equal(product.price);
-            res.body[0].imageUrls.should.be.an("array");
-            done();
-          });
         });
     });
 
-    it("It should push new item to card", (done) => {
+    it("It should push second item to cart", (done) => {
       const userCredentials = {
         "username" : "yellowleopard753",
         "password" : "jonjon"
@@ -218,24 +233,39 @@ describe('cart', () => {
         (err, res, done) => {
           const accessToken = res.body;
           const header = { token : accessToken.token };
-          const product2 = testProduct2;
           
-          sendChaiPostWithHeader(server, "/api/me/cart", product2, header, done, (err, res, done) => {
-            // Assign idToDelete for later testing
-            idToDelete = res.body[1].id;
-            res.should.have.status(200);
-            res.body.should.be.an("array");
-            res.body.should.have.lengthOf(2);
-            res.body[1].should.have.property("id");
-            res.body[1].should.have.property("name");
-            res.body[1].name.should.equal(product2.name);
-            res.body[1].should.have.property("description");
-            res.body[1].description.should.equal(product2.description);
-            res.body[1].should.have.property("price");
-            res.body[1].price.should.equal(product2.price);
-            res.body[1].imageUrls.should.be.an("array");
-            done();
-          });
+          sendChaiGet(server, "/api/products", done, 
+            (err, res, done) => {
+              const products = res.body;
+              const product = products[3];
+             
+                sendChaiPostWithHeader(server, "/api/me/cart", product, header, done, (err, res, done) => {
+                  
+                  sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+                    (err, res, done) => {
+                      res.should.have.status(200);
+                      res.body.should.be.an("array");
+                      res.body.should.have.lengthOf(2);
+                      // Checking cart item
+                      res.body[1].should.have.property("id");
+          
+                      // Checking if cart item has quantity value
+                      res.body[1].should.have.property("quantity");
+                      res.body[1].quantity.should.equal(1);
+          
+                      // Checking product inside of cart item
+                      res.body[1].product.should.have.property("id");
+                      res.body[1].product.should.have.property("name");
+                      res.body[1].product.name.should.equal(product.name);
+                      res.body[1].product.should.have.property("description");
+                      res.body[1].product.description.should.equal(product.description);
+                      res.body[1].product.should.have.property("price");
+                      res.body[1].product.price.should.equal(product.price);
+                      res.body[1].product.imageUrls.should.be.an("array");
+                      done();
+                    })
+                });
+              }); 
         });
     });
 
@@ -254,32 +284,20 @@ describe('cart', () => {
         });
     });
 
-    it("It should return 400 error if product is empty", (done) => {
+    it("It should return 404 error if product is empty", (done) => {
       sendChaiPost(server, "/api/login", userCredentials, done, 
         (err, res, done) => {
           const accessToken = res.body;
           const header = { token : accessToken.token };
           
           sendChaiPostWithHeader(server, "/api/me/cart", {}, header, done, (err, res, done) => {
-            res.should.have.status(400);
+            res.should.have.status(404);
             done();
           });
         });
     });
-
-    it("It should return 400 error if product is empty", (done) => {
-      sendChaiPost(server, "/api/login", userCredentials, done, 
-        (err, res, done) => {
-          const accessToken = res.body;
-          const header = { token : accessToken.token };
-          
-          sendChaiPostWithHeader(server, "/api/me/cart", {}, header, done, (err, res, done) => {
-            res.should.have.status(400);
-            done();
-          });
-        });
-    });
-   });
+    
+  });
 
    describe("DELETE /me/cart/:id", () => {
     it("It should delete item from cart", (done) => {
@@ -292,15 +310,21 @@ describe('cart', () => {
         (err, res, done) => {
           const accessToken = res.body;
           const header = { token : accessToken.token };
-          sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done,  
+
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
             (err, res, done) => {
               res.should.have.status(200);
               res.body.should.be.an("array");
-              res.body.should.have.lengthOf(1);
-              done();
-            }
-          )
-            
+              const idToDelete = res.body[0].id;
+
+              sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done,  
+                (err, res, done) => {
+                  res.should.have.status(200);
+                  res.body.should.be.an("array");
+                  res.body.should.have.lengthOf(1);
+                  done();
+                });
+            });
         });
     });
 
@@ -310,35 +334,125 @@ describe('cart', () => {
           const accessToken = res.body;
           accessToken.token = randId();
           const header = { token : accessToken.token };
-          
-          sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done, 
+
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
             (err, res, done) => {
-            res.should.have.status(403);
-            done();
-          });
+              const idToDelete = res.body[0];
+              sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done, 
+                (err, res, done) => {
+                res.should.have.status(403);
+                done();
+              });
+            });
+          
         });
     });
 
-    it("It should return an 404 if invalid ID", (done) => {
-    const userCredentials = {
-      "username" : "yellowleopard753",
-      "password" : "jonjon"
-    };
+    it("It should return an 404 if invalid Id", (done) => {
 
-    sendChaiPost(server, "/api/login", userCredentials, done, 
-      (err, res, done) => {
-        const accessToken = res.body;
-        const header = { token : accessToken.token };
-        sendChaiDelete(server, `/api/me/cart/999`, header, done,  
-          (err, res, done) => {
-            res.should.have.status(404);
-            done();
-          }
-        )
+      const userCredentials = {
+        "username" : "yellowleopard753",
+        "password" : "jonjon"
+      };
+
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          const header = { token : accessToken.token };
           
+          sendChaiDelete(server, `/api/me/cart/999`, header, done,  
+            (err, res, done) => {
+              res.should.have.status(404);
+              done();
+            })
       });
     });
 
   });
+
+  describe("POST /me/cart/:id", () => {
+    it("It should update item count in cart", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              const {id, quantity} = res.body[0];
+              const updatedQuantity = quantity + 1;
+
+              sendChaiPostWithHeader(server, `/api/me/cart/${id}`, {quantity : updatedQuantity}, header, done,
+                (err, res, done) => {
+
+                  sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+                    (err, res, done) => {
+                      res.should.have.status(200);
+                      res.body[0].quantity.should.equal(updatedQuantity);
+                      done();
+                    });
+                });
+            });
+        });
+    });
+
+    it("It should return 400 if updating to 0", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              const {id, quantity} = res.body[0];
+              const updatedQuantity = 0;
+
+              sendChaiPostWithHeader(server, `/api/me/cart/${id}`, {quantity : updatedQuantity}, header, done,
+                (err, res, done) => {
+                  res.should.have.status(400);
+                  done();
+                });
+            });
+        });
+    });
+
+    it("It should return 403 if invalid token", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              const {id, quantity} = res.body[0];
+              const updatedQuantity = quantity + 1;
+
+              sendChaiPostWithHeader(server, `/api/me/cart/${id}`, {quantity : updatedQuantity}, {token : 99999 }, done,
+                (err, res, done) => {
+                  res.should.have.status(403);
+                  done();
+                });
+            });
+        });
+    });
+
+    it("It should return 404 error if invalid id", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              const {id, quantity} = res.body[0];
+              const updatedQuantity = quantity + 1;
+
+              sendChaiPostWithHeader(server, "/api/me/cart/999", {quantity : updatedQuantity}, header, done,
+                (err, res, done) => {
+                  res.should.have.status(404);
+                  done();
+                });
+            });
+        });
+    });
+
+  });
+
   
 });

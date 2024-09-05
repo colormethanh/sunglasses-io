@@ -104,6 +104,7 @@ app.post(BASE_URL + "/login", (req,res) => {
   }
 });
 
+// Get user cart
 app.get(BASE_URL + "/me/cart", (req, res) => {
   try {
     // Check for token in header
@@ -132,6 +133,7 @@ app.get(BASE_URL + "/me/cart", (req, res) => {
   };
 });
 
+// Add item to cart
 app.post(BASE_URL + "/me/cart", (req, res) => {
   try {
     // Check for token in header
@@ -159,19 +161,20 @@ app.post(BASE_URL + "/me/cart", (req, res) => {
     if (!product) req.status(400).send(errorMessages[400]);
 
     // Validate provided product
-    const productIsValid = validateProduct(product);
-    if (!productIsValid) return res.status(400).send(errorMessages[400]);
+    const productIsValid = validateProduct(product, products);
+    if (!productIsValid) return res.status(404).send(errorMessages[404]);
 
-    userCart.push(Object.assign({id: randId()}, product));
+    userCart.push({quantity: 1, id: randId() , product: product});
 
-    res.send(userCart);
+    res.send();
 
   } catch(err) {
     console.log(err)
     next(err)
   }
-})
+});
 
+// Delete cart item
 app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
   try {
     // Check for token in header
@@ -197,11 +200,11 @@ app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
     const { id } = req.params;
     if (!id) return res.status(400).send(errorMessages[400]);
 
-    // Check if post to delete exists
+    // Check if item exists
     const itemToDelete = user.cart.find((item) => item.id === id);
     if(!itemToDelete) return res.status(404).send("Item could not be found");
 
-    // Filter item out of cart
+    // Filter item out of cart 
     user.cart = user.cart.filter((item) => item === itemToDelete);
 
     res.send(user.cart);
@@ -209,7 +212,53 @@ app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
   } catch(err) {
     next(err);
   }
-})
+});
+
+// Update quantity value of cart
+app.post(BASE_URL + "/me/cart/:id", (req, res) => {
+  try {
+    // Check for token in header
+    const token = req.header("token");
+    if (!token) return res.status(401).send(errorMessages[401]);
+
+    // Check if access token is in "database"
+    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
+    if (!accessToken) return res.status(403).send(errorMessages[403]);
+
+    // Check if the retrieved token is still valid
+    const tokenIsStillValid = isStillValid(accessToken);
+    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    
+    // Find corresponding user
+    const user = users.find((user) => user.login.username === accessToken.username);
+    if (!user) return res.status(500).send(errorMessages[500]);
+    
+    // Check if user has cart
+    if (!user.cart) return res.status(500).send(errorMessages[500]);
+
+    // Check if id parameter is present
+    const { id } = req.params;
+    if (!id) return res.status(400).send(errorMessages[400]);
+
+    // Check if item exists
+    const itemToUpdate = user.cart.find((item) => item.id === id);
+    if(!itemToUpdate) return res.status(404).send("Item could not be found");
+
+    // Check is post body has quantity value
+    const {quantity} = req.body;
+    if(!quantity) return res.status(400).send(errorMessages[400]);
+
+    // Check if quantity is greater than 0
+    if (quantity <= 0) return res.status(400).send("Quantity must be greater than 0");
+
+    itemToUpdate.quantity = quantity;
+
+    res.send(errorMessages[200]);
+
+  } catch(err) {
+    next(err);
+  }
+});
 
 
 // Error handling

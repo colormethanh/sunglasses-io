@@ -41,7 +41,7 @@ const sendChaiPostWithHeader = (server, route, data, header, done, onEnd) => {
             .end((err, res) => {
               onEnd(err, res, done);
             })
-}
+};
 
 const sendChaiDelete = (server, route, header, done, onEnd) => {
   return chai
