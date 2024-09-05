@@ -2,7 +2,8 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const server = require('../app/server'); // Adjust the path as needed
 const { serve } = require('swagger-ui-express');
-const { sendChaiGet, sendChaiPost } = require("../utility/chaiHelpers");
+const { sendChaiGet, sendChaiGetWithHeader, sendChaiPost } = require("../utility/chaiHelpers");
+const { randId } = require("../utility/helper");
 
 const should = chai.should();
 chai.use(chaiHttp);
@@ -138,17 +139,44 @@ describe('Cart', () => {
     it("It should return cart after logging in", (done) => {
       sendChaiPost(server, "/api/login", userCredentials, done, 
         (err, res, done) => {
-          
           const accessToken = res.body;
-          sendChaiGet(server, "/api/me/cart", done, 
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
             (err, res, done) => {
               res.should.have.status(200);
+              res.body.should.be.an("array");
               done();
-            }
-          )
-        })
-    })
-  })
+            });
+        });
+    });
+
+    it("It should return 403 if invalid token", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const accessToken = res.body;
+          accessToken.token = randId();
+          const header = { token : accessToken.token };
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              res.should.have.status(403);
+              done();
+            });
+        });
+    });
+
+    it("It should return 401 if request sent without token", (done) => {
+      sendChaiPost(server, "/api/login", userCredentials, done, 
+        (err, res, done) => {
+          const header = {};
+          sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+            (err, res, done) => {
+              res.should.have.status(401);
+              done();
+            });
+        });
+    });
+
+  });
   
 
 

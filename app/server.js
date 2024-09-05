@@ -5,7 +5,7 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./sunglasses-swagger.yaml');
 const {errorMessages} = require('../utility/errors');
-const {AccessToken, randId} = require('../utility/helper');
+const {AccessToken, isStillValid} = require('../utility/helper');
 const app = express();
 
 const BASE_URL = "/api"
@@ -80,14 +80,39 @@ app.post(BASE_URL + "/login", (req,res) => {
     // todo : update user access token if expired 
     
     res.send(userAccessToken);
-
   } catch (err) {
     next(err);
   }
+});
+
+app.get(BASE_URL + "/me/cart", (req, res) => {
+  try {
+    // Check for token in header
+    const token = req.header("token");
+    if (!token) return res.status(401).send(errorMessages[401]);
+
+    // Check if access token is in "database"
+    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
+    if (!accessToken) return res.status(403).send(errorMessages[403]);
+
+    // Check if the retrieved token is still valid
+    const tokenIsStillValid = isStillValid(accessToken);
+    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    
+    // Find corresponding user
+    const user = users.find((user) => user.login.username === accessToken.username);
+    if (!user) return res.status(404).send(errorMessages[404]);
+
+    // Get the user's cart
+    const userCart = user.cart;
+    if (!userCart) return res.status(404).send(errorMessages[404]);
+
+    res.send(userCart);
+  } catch(err) {
+    console.log(err)
+    next(err);
+  }
 })
-
-
-
 
 
 // Error handling

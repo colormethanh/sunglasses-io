@@ -15,4 +15,4 @@ const AccessToken = (username) => {
   }
 } 
 
-module.exports = {AccessToken, upDateTimestamp, isStillValid}
+module.exports = {AccessToken, upDateTimestamp, isStillValid, randId}

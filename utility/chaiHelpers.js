@@ -12,6 +12,16 @@ const sendChaiGet = (server, route, done, onEnd) => {
             })
 };
 
+const sendChaiGetWithHeader = (server, route, header, done, onEnd) => {
+  return chai
+            .request(server)
+            .get(route)
+            .set(header)
+            .end((err, res) => {
+              onEnd(err, res, done);
+            })
+};
+
 const sendChaiPost = (server, route, data, done, onEnd) => {
   return chai
             .request(server)
@@ -22,4 +32,4 @@ const sendChaiPost = (server, route, data, done, onEnd) => {
             })
 };
 
-module.exports = {sendChaiGet, sendChaiPost};
+module.exports = {sendChaiGet, sendChaiGetWithHeader ,sendChaiPost};
