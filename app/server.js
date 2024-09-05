@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./sunglasses-swagger.yaml');
-const {errorMessages} = require('../utility/errors');
-const {AccessToken, isStillValid} = require('../utility/helper');
+const { errorMessages } = require('../utility/errors');
+const { AccessToken, isStillValid, updateTimestamp } = require('../utility/helper');
 const app = express();
 
 const BASE_URL = "/api"
@@ -31,6 +31,7 @@ app.listen(PORT, () => {
 // Gets a list of brands
 app.get(BASE_URL + "/brands", (req, res) => {
   try {
+    // Check if brands were retrieved successfully
     if (!brands) return res.status(500).send(errorMessages[500]);
     res.send(brands);
   } catch(err){
@@ -41,10 +42,15 @@ app.get(BASE_URL + "/brands", (req, res) => {
 // Get a list of products with brand of provided id
 app.get(BASE_URL + "/brands/:id/products", (req, res) => {
   try {
+    // Check if id parameter is present
     const { id } = req.params;
-    const brandIds = brands.map((brand) => brand.id);
     if (!id) return res.status(400).send(errorMessages[400]);
+
+    // Create a list of brandIds and check if the id is included in it
+    const brandIds = brands.map((brand) => brand.id);
     if (!brandIds.includes(id)) return res.status(404).send(errorMessages[404]);
+
+    // Filter products according to brandId
     const filteredProduct = products.filter((product) => product.categoryId === id);
     res.send(filteredProduct);
   } catch(err) {
@@ -52,8 +58,10 @@ app.get(BASE_URL + "/brands/:id/products", (req, res) => {
   };
 });
 
+// Get a list of all products
 app.get(BASE_URL + "/products", (req, res) => {
   try{
+    // Check is products were retrieved successfully
     if(!products) return res.status(500).send(errorMessages[500]);
     res.send(products);
   } catch(err) {
@@ -61,23 +69,29 @@ app.get(BASE_URL + "/products", (req, res) => {
   };
 });
 
+// Login
 app.post(BASE_URL + "/login", (req,res) => {
   try {
+    // Check is username and password is present in body
     const {username, password} = req.body;
     if (!username || !password) return res.status(401).send(errorMessages[401]);
 
+    // Check if user exists
     const user = users.find((user) => user.login.username === username && user.login.password === password);
-
     if (!user) return res.status(401).send(errorMessages[401]);
 
+    // Check if user already has access token
     let userAccessToken = ACCESS_TOKENS.find((token) => token.username === user.username);
 
+    // If user did not already have accessToken make one for them
     if (!userAccessToken) {
       userAccessToken = AccessToken(username);
       ACCESS_TOKENS.push(userAccessToken);
     };
 
-    // todo : update user access token if expired 
+    // Check if token is expired and if so update it
+    const tokenStillValid = isStillValid(userAccessToken);
+    if(!tokenStillValid) updateTimestamp(token);
     
     res.send(userAccessToken);
   } catch (err) {
