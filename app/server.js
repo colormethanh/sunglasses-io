@@ -64,12 +64,20 @@ app.get(BASE_URL + "/products", (req, res) => {
 app.post(BASE_URL + "/login", (req,res) => {
   try {
     const {username, password} = req.body;
-    if (!username || !password) res.status(401).send(errorMessages[401]);
+    if (!username || !password) return res.status(401).send(errorMessages[401]);
 
     const user = users.find((user) => user.login.username === username && user.login.password === password);
-    
-    // todo: check if user already has access token
-    const userAccessToken = AccessToken(username);
+
+    if (!user) return res.status(401).send(errorMessages[401]);
+
+    let userAccessToken = ACCESS_TOKENS.find((token) => token.username === user.username);
+
+    if (!userAccessToken) {
+      userAccessToken = AccessToken(username);
+      ACCESS_TOKENS.push(userAccessToken);
+    };
+
+    // todo : update user access token if expired 
     
     res.send(userAccessToken);
 
