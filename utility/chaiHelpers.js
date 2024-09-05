@@ -32,4 +32,27 @@ const sendChaiPost = (server, route, data, done, onEnd) => {
             })
 };
 
-module.exports = {sendChaiGet, sendChaiGetWithHeader ,sendChaiPost};
+const sendChaiPostWithHeader = (server, route, data, header, done, onEnd) => {
+  return chai
+            .request(server)
+            .post(route)
+            .set(header)
+            .send(data)
+            .end((err, res) => {
+              onEnd(err, res, done);
+            })
+}
+
+const sendChaiDelete = (server, route, header, done, onEnd) => {
+  return chai
+            .request(server)
+            .del(route)
+            .set(header)
+            .end((err, res) => {
+              onEnd(err, res, done);
+            })
+            
+
+};
+
+module.exports = {sendChaiGet, sendChaiGetWithHeader,sendChaiPost, sendChaiPostWithHeader, sendChaiDelete};
