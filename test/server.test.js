@@ -9,6 +9,7 @@ const should = chai.should();
 chai.use(chaiHttp);
 
 describe('Brands', () => {
+  
   describe("/GET brands/", () => {
     it("should GET all brands", (done) => {
       sendChaiGet(server, "/api/brands", done, (err, res, done) => {
@@ -17,7 +18,6 @@ describe('Brands', () => {
         done();
       });
     });
-
   });
 
   describe("/GET /brands/{id}/products", () => {
@@ -25,8 +25,10 @@ describe('Brands', () => {
       sendChaiGet(server, "/api/brands/1/products", done, 
         (err, res, done) => {
           res.should.have.status(200);
+          // check if body is an array
           res.body.should.be.an("array");
           res.body.should.have.lengthOf(3);
+          // Check if array item is a product object
           res.body[0].should.have.property("id");
           res.body[0].should.have.property("categoryId", "1");
           res.body[0].should.have.property("name");
@@ -44,7 +46,6 @@ describe('Brands', () => {
           done();
         });
     });
-    
   });
 
   describe('GET /products/', () => { 
@@ -54,8 +55,10 @@ describe('Brands', () => {
         .get("/api/products")
         .end((err, res) => {
           res.should.have.status(200);
+          // check if body is an array and length
           res.body.should.be.an("array");
           res.body.should.have.lengthOf(11);
+          // check if array item is a product object
           res.body[0].should.have.property("id");
           res.body[0].should.have.property("categoryId");
           res.body[0].should.have.property("name");
@@ -81,6 +84,7 @@ describe('Login', () => {
       (err, res, done) => {
         res.should.have.status(200);
         res.body.should.be.an("object");
+        // check if body is a token object
         res.body.should.have.property("username");
         res.body.should.have.property("token");
         res.body.should.have.property("timestamp");
@@ -101,7 +105,7 @@ describe('Login', () => {
       });
   });
 
-  it("It should return an error if no credential provided", (done) => {
+  it("It should return an 401 if no credential provided", (done) => {
     sendChaiPost(server, "/api/login", {}, done, 
       (err, res, done) => {
         res.should.have.status(401);
@@ -109,7 +113,7 @@ describe('Login', () => {
       });
   });
 
-  it("It should return an error if only password provided", (done) => {
+  it("It should return an 401 if only password provided", (done) => {
     sendChaiPost(server, "/api/login", {"password": "wrong"}, done, 
       (err, res, done) => {
         res.should.have.status(401);
@@ -117,14 +121,13 @@ describe('Login', () => {
       });
   });
 
-  it("It should return an error if only username provided", (done) => {
+  it("It should return an 401 if only username provided", (done) => {
     sendChaiPost(server, "/api/login", {"username" : "wrong"}, done, 
       (err, res, done) => {
         res.should.have.status(401);
         done();
       });
   });
-
 });
 
 describe('cart', () => {
@@ -192,34 +195,34 @@ describe('cart', () => {
               const products = res.body;
               const product = products[0];
 
-              sendChaiPostWithHeader(server, "/api/me/cart", product, header, done, (err, res, done) => {
+              sendChaiPostWithHeader(server, "/api/me/cart", product, header, done, 
+                (err, res, done) => {
 
-                sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
-                  (err, res) => {
+                  sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
+                    (err, res) => {
 
-                    res.should.have.status(200);
-                    res.body.should.be.an("array");
-                    // Checking cart item
-                    res.body[0].should.have.property("id");
-        
-                    // Checking if cart item has quantity value
-                    res.body[0].should.have.property("quantity");
-                    res.body[0].quantity.should.equal(1);
-        
-                    // Checking product inside of cart item
-                    res.body[0].product.should.have.property("id");
-                    res.body[0].product.should.have.property("name");
-                    res.body[0].product.name.should.equal(product.name);
-                    res.body[0].product.should.have.property("description");
-                    res.body[0].product.description.should.equal(product.description);
-                    res.body[0].product.should.have.property("price");
-                    res.body[0].product.price.should.equal(product.price);
-                    res.body[0].product.imageUrls.should.be.an("array");
-                    done();
-                  });
-              });
-          }); 
+                      res.should.have.status(200);
+                      res.body.should.be.an("array");
+                      // Checking cart item
+                      res.body[0].should.have.property("id");
           
+                      // Checking if cart item has correct quantity value
+                      res.body[0].should.have.property("quantity");
+                      res.body[0].quantity.should.equal(1);
+          
+                      // Checking product inside of cart item
+                      res.body[0].product.should.have.property("id");
+                      res.body[0].product.should.have.property("name");
+                      res.body[0].product.name.should.equal(product.name);
+                      res.body[0].product.should.have.property("description");
+                      res.body[0].product.description.should.equal(product.description);
+                      res.body[0].product.should.have.property("price");
+                      res.body[0].product.price.should.equal(product.price);
+                      res.body[0].product.imageUrls.should.be.an("array");
+                      done();
+                    });
+                });
+           }); 
         });
     });
 
@@ -245,8 +248,9 @@ describe('cart', () => {
                     (err, res, done) => {
                       res.should.have.status(200);
                       res.body.should.be.an("array");
+
+                      // Checking cart item has proper length and has id
                       res.body.should.have.lengthOf(2);
-                      // Checking cart item
                       res.body[1].should.have.property("id");
           
                       // Checking if cart item has quantity value
@@ -315,13 +319,24 @@ describe('cart', () => {
             (err, res, done) => {
               res.should.have.status(200);
               res.body.should.be.an("array");
+
+              // Grab the id of cart item to delete
+              console.log(res.body[0])
               const idToDelete = res.body[0].id;
+              const otherItemId = res.body[1].id;
 
               sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done,  
                 (err, res, done) => {
+                  console.log(res.body)
                   res.should.have.status(200);
                   res.body.should.be.an("array");
+                  
+                  // check if cart item was delete
                   res.body.should.have.lengthOf(1);
+
+                  // Checking if correct item was deleted
+                  res.body[0].id.should.equal(otherItemId);
+
                   done();
                 });
             });
@@ -348,7 +363,7 @@ describe('cart', () => {
         });
     });
 
-    it("It should return an 404 if invalid Id", (done) => {
+    it("It should return 404 if invalid Id", (done) => {
 
       const userCredentials = {
         "username" : "yellowleopard753",
@@ -387,6 +402,7 @@ describe('cart', () => {
                   sendChaiGetWithHeader(server, "/api/me/cart", header, done, 
                     (err, res, done) => {
                       res.should.have.status(200);
+                      // Check is quantity value was updated
                       res.body[0].quantity.should.equal(updatedQuantity);
                       done();
                     });
@@ -454,5 +470,4 @@ describe('cart', () => {
 
   });
 
-  
 });

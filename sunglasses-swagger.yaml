@@ -1,7 +1,7 @@
 swagger: "2.0"
 info:
   title: Sunglasses API
-  description: API for managing brands, products, and user cart of a sunglasses ecommerce site
+  description: API that simulates a sunglasses ecommerce site
   version: 1.0.0
 host: 127.0.0.1:3000
 basePath: /api
@@ -81,11 +81,10 @@ paths:
           description: password of user
           required: true
       responses:
-      200:
-        description: OK
-        schema:
-          type: string
-          description: access token
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/Token"
         default:
           description: Unexpected Error
           schema:
@@ -191,7 +190,7 @@ definitions:
       id:
         type: string
         description: unique identifier for a goal
-      categoryId:
+      categoruId:
         type: string
         description: id to corresponding brand
       name:
@@ -226,6 +225,8 @@ definitions:
           $ref: "#/definitions/Product"
         quantity:
           type: integer
+        id:
+          type: string
   User:
     type: object
     properties:
@@ -314,4 +315,13 @@ definitions:
       message:
         type: string
       fields:
+        type: string
+  Token:
+    type: object
+    properties:
+      username:
+        type: string
+      token:
+        type: string
+      timestamp:
         type: string

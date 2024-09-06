@@ -22,6 +22,7 @@ const users = require('../initial-data/users.json');
 const brands = require('../initial-data/brands.json');
 const products = require('../initial-data/products.json');
 
+// Access token "database"
 const ACCESS_TOKENS = [];
 
 // Swagger
@@ -57,6 +58,7 @@ app.get(BASE_URL + "/brands/:id/products", (req, res) => {
 
     // Filter products according to brandId
     const filteredProduct = products.filter((product) => product.categoryId === id);
+
     res.send(filteredProduct);
   } catch(err) {
     next(err);
@@ -66,8 +68,9 @@ app.get(BASE_URL + "/brands/:id/products", (req, res) => {
 // Get a list of all products
 app.get(BASE_URL + "/products", (req, res) => {
   try{
-    // Check is products were retrieved successfully
+    // Check if products were retrieved successfully
     if(!products) return res.status(500).send(errorMessages[500]);
+
     res.send(products);
   } catch(err) {
     next(err);
@@ -88,7 +91,7 @@ app.post(BASE_URL + "/login", (req,res) => {
     // Check if user already has access token
     let userAccessToken = ACCESS_TOKENS.find((token) => token.username === user.username);
 
-    // If user did not already have accessToken make one for them
+    // If user did not already have accessToken make one for them and add to database
     if (!userAccessToken) {
       userAccessToken = AccessToken(username);
       ACCESS_TOKENS.push(userAccessToken);
@@ -205,7 +208,7 @@ app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
     if(!itemToDelete) return res.status(404).send("Item could not be found");
 
     // Filter item out of cart 
-    user.cart = user.cart.filter((item) => item === itemToDelete);
+    user.cart = user.cart.filter((item) => item !== itemToDelete);
 
     res.send(user.cart);
   
@@ -214,7 +217,7 @@ app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
   }
 });
 
-// Update quantity value of cart
+// Update quantity value of cart items
 app.post(BASE_URL + "/me/cart/:id", (req, res) => {
   try {
     // Check for token in header
