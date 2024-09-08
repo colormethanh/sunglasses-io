@@ -9,7 +9,7 @@ const sendChaiGet = (server, route, done, onEnd) => {
             .get(route)
             .end((err, res) => {
               onEnd(err, res, done);
-            })
+            });
 };
 
 const sendChaiGetWithHeader = (server, route, header, done, onEnd) => {
@@ -19,7 +19,7 @@ const sendChaiGetWithHeader = (server, route, header, done, onEnd) => {
             .set(header)
             .end((err, res) => {
               onEnd(err, res, done);
-            })
+            });
 };
 
 const sendChaiPost = (server, route, data, done, onEnd) => {
@@ -29,7 +29,7 @@ const sendChaiPost = (server, route, data, done, onEnd) => {
             .send(data)
             .end((err, res) => {
               onEnd(err, res, done);
-            })
+            });
 };
 
 const sendChaiPostWithHeader = (server, route, data, header, done, onEnd) => {
