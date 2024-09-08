@@ -31,6 +31,5 @@ const AccessToken = (username) => {
   }
 };
 
-// 
 
 module.exports = {AccessToken, updateTimestamp, isStillValid, validateProduct, randId, testProduct}

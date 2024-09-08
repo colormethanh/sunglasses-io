@@ -321,13 +321,11 @@ describe('cart', () => {
               res.body.should.be.an("array");
 
               // Grab the id of cart item to delete
-              console.log(res.body[0])
               const idToDelete = res.body[0].id;
               const otherItemId = res.body[1].id;
 
               sendChaiDelete(server, `/api/me/cart/${idToDelete}`, header, done,  
                 (err, res, done) => {
-                  console.log(res.body)
                   res.should.have.status(200);
                   res.body.should.be.an("array");
                   

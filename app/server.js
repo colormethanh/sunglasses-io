@@ -4,13 +4,16 @@ const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./sunglasses-swagger.yaml');
-
 const { errorMessages } = require('../utility/errors');
-const { AccessToken, 
+const { getUserFromToken,
+        getUserCart,
+        loginUser,
+        validateToken,
+        getAccessTokenFromUsername, 
         isStillValid, 
         updateTimestamp, 
-        validateProduct, 
-        randId } = require('../utility/helper');
+        AccessToken} = require("../utility/authHelpers");
+const { validateProduct, randId } = require('../utility/helper');
 
 const app = express();
 
@@ -81,16 +84,16 @@ app.get(BASE_URL + "/products", (req, res) => {
 // Login
 app.post(BASE_URL + "/login", (req,res) => {
   try {
-    // Check is username and password is present in body
-    const {username, password} = req.body;
-    if (!username || !password) return res.status(401).send(errorMessages[401]);
 
-    // Check if user exists
-    const user = users.find((user) => user.login.username === username && user.login.password === password);
-    if (!user) return res.status(401).send(errorMessages[401]);
+    // log user in
+    const {username, password} = req.body;
+    const login = loginUser(username, password, users);
+    if (!login.loginSuccess) return res.status(login.err).send(login.message);
+
+    const user = login.user;
 
     // Check if user already has access token
-    let userAccessToken = ACCESS_TOKENS.find((token) => token.username === user.username);
+    let userAccessToken = getAccessTokenFromUsername(user, ACCESS_TOKENS);
 
     // If user did not already have accessToken make one for them and add to database
     if (!userAccessToken) {
@@ -111,27 +114,18 @@ app.post(BASE_URL + "/login", (req,res) => {
 // Get user cart
 app.get(BASE_URL + "/me/cart", (req, res) => {
   try {
-    // Check for token in header
     const token = req.header("token");
-    if (!token) return res.status(401).send(errorMessages[401]);
 
-    // Check if access token is in "database"
-    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
-    if (!accessToken) return res.status(403).send(errorMessages[403]);
+    // Validate token
+    const tokenValidation = validateToken(token, ACCESS_TOKENS);
+    if (!tokenValidation.isValid) return res.status(tokenValidation.err).send(tokenValidation.message);
 
-    // Check if the retrieved token is still valid
-    const tokenIsStillValid = isStillValid(accessToken);
-    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    const accessToken = tokenValidation.accessToken; 
     
-    // Find corresponding user
-    const user = users.find((user) => user.login.username === accessToken.username);
-    if (!user) return res.status(404).send(errorMessages[404]);
+    const userCart = getUserCart(accessToken.username, users);
+    if(!userCart.isFound) return res.status(userCart.err).send(userCart.message);
 
-    // Get the user's cart
-    const userCart = user.cart;
-    if (!userCart) return res.status(404).send(errorMessages[404]);
-
-    res.send(userCart);
+    res.send(userCart.cart);
   } catch(err) {
     next(err);
   };
@@ -140,26 +134,17 @@ app.get(BASE_URL + "/me/cart", (req, res) => {
 // Add item to cart
 app.post(BASE_URL + "/me/cart", (req, res) => {
   try {
-    // Check for token in header
     const token = req.header("token");
-    if (!token) return res.status(401).send(errorMessages[401]);
 
-    // Check if access token is in "database"
-    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
-    if (!accessToken) return res.status(403).send(errorMessages[403]);
+    // Validate token
+    const tokenValidation = validateToken(token, ACCESS_TOKENS);
+    if (!tokenValidation.isValid) return res.status(tokenValidation.err).send(tokenValidation.message);
 
-    // Check if the retrieved token is still valid
-    const tokenIsStillValid = isStillValid(accessToken);
-    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    const accessToken = tokenValidation.accessToken; 
     
-    // Find corresponding user
-    const user = users.find((user) => user.login.username === accessToken.username);
-    if (!user) return res.status(500).send(errorMessages[500]);
-    
-    // Get the user's cart
-    const userCart = user.cart;
-    if (!userCart) return res.status(404).send(errorMessages[404]);
-    
+    const userCart = getUserCart(accessToken.username, users);
+    if(!userCart.isFound) return res.status(userCart.err).send(userCart.message);
+
     // check if product was sent in body
     const product = req.body;
     if (!product) req.status(400).send(errorMessages[400]);
@@ -168,12 +153,11 @@ app.post(BASE_URL + "/me/cart", (req, res) => {
     const productIsValid = validateProduct(product, products);
     if (!productIsValid) return res.status(404).send(errorMessages[404]);
 
-    userCart.push({quantity: 1, id: randId() , product: product});
+    userCart.cart.push({quantity: 1, id: randId() , product: product});
 
     res.send();
 
   } catch(err) {
-    console.log(err)
     next(err)
   }
 });
@@ -181,37 +165,34 @@ app.post(BASE_URL + "/me/cart", (req, res) => {
 // Delete cart item
 app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
   try {
-    // Check for token in header
     const token = req.header("token");
-    if (!token) return res.status(401).send(errorMessages[401]);
 
-    // Check if access token is in "database"
-    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
-    if (!accessToken) return res.status(403).send(errorMessages[403]);
+    // Validate token
+    const tokenValidation = validateToken(token, ACCESS_TOKENS);
+    if (!tokenValidation.isValid) return res.status(tokenValidation.err).send(tokenValidation.message);
 
-    // Check if the retrieved token is still valid
-    const tokenIsStillValid = isStillValid(accessToken);
-    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    const accessToken = tokenValidation.accessToken; 
     
-    // Find corresponding user
-    const user = users.find((user) => user.login.username === accessToken.username);
-    if (!user) return res.status(500).send(errorMessages[500]);
+    // Try to get user from DB
+    const userStatus = getUserFromToken(accessToken, users);
+    if (!userStatus.userFound) return res.status(userStatus.err).send(userStatus.message);
     
-    // Check if user has cart
-    if (!user.cart) return res.status(500).send(errorMessages[500]);
+    // Get user cart
+    const userCart = getUserCart(accessToken.username, users);
+    if(!userCart.isFound) return res.status(userCart.err).send(userCart.message);
 
     // Check if id parameter is present
     const { id } = req.params;
     if (!id) return res.status(400).send(errorMessages[400]);
 
     // Check if item exists
-    const itemToDelete = user.cart.find((item) => item.id === id);
+    const itemToDelete = userCart.cart.find((item) => item.id === id);
     if(!itemToDelete) return res.status(404).send("Item could not be found");
 
     // Filter item out of cart 
-    user.cart = user.cart.filter((item) => item !== itemToDelete);
+    userStatus.user.cart = userCart.cart.filter((item) => item !== itemToDelete);
 
-    res.send(user.cart);
+    res.send(userStatus.user.cart);
   
   } catch(err) {
     next(err);
@@ -221,21 +202,18 @@ app.delete(BASE_URL + "/me/cart/:id", (req, res) => {
 // Update quantity value of cart items
 app.post(BASE_URL + "/me/cart/:id", (req, res) => {
   try {
-    // Check for token in header
     const token = req.header("token");
-    if (!token) return res.status(401).send(errorMessages[401]);
 
-    // Check if access token is in "database"
-    const accessToken = ACCESS_TOKENS.find((accessToken) => token == accessToken.token);
-    if (!accessToken) return res.status(403).send(errorMessages[403]);
+    // Validate and get token
+    const tokenValidation = validateToken(token, ACCESS_TOKENS);
+    if (!tokenValidation.isValid) return res.status(tokenValidation.err).send(tokenValidation.message);
 
-    // Check if the retrieved token is still valid
-    const tokenIsStillValid = isStillValid(accessToken);
-    if(!tokenIsStillValid) return res.status(403).send("Token has expired");
+    const accessToken = tokenValidation.accessToken; 
     
-    // Find corresponding user
-    const user = users.find((user) => user.login.username === accessToken.username);
-    if (!user) return res.status(500).send(errorMessages[500]);
+    // retrieve user
+    const userStatus = getUserFromToken(accessToken, users);
+    if (!userStatus.userFound) return res.status(userStatus.err).send(userStatus.message);
+    const user = userStatus.user;
     
     // Check if user has cart
     if (!user.cart) return res.status(500).send(errorMessages[500]);
@@ -267,7 +245,6 @@ app.post(BASE_URL + "/me/cart/:id", (req, res) => {
 
 // Error handling
 app.use((err, req, res, next) => {
-	console.error(err.stack);
 	res.status(500).send(errorMessages[500]);
 });
 
